@@ -1,0 +1,21 @@
+{
+  "name": "betoken-js",
+  "version": "0.0.1",
+  "description": "JavaScript API for interacting with Betoken Fund",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "betoken",
+    "api",
+    "blockchain",
+    "ethereum"
+  ],
+  "author": "Zefram Lou",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "bignumber.js": "^9.0.0",
+    "web3": "^1.0.0-beta.37"
+  }
+}
