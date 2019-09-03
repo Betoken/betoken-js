@@ -98,6 +98,9 @@ export const BetokenAPI = (betoken, Data) => {
     },
     stats: () => {
       return Data.loadTokenPrices().then(Data.loadUserData).then(Data.loadStats);
+    },
+    all: () => {
+      return Data.loadDynamicData();
     }
   };
 
