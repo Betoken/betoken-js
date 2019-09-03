@@ -1,5 +1,4 @@
 // imports
-import { getDefaultAccount, CompoundOrder } from './betoken-obj';
 import BigNumber from "bignumber.js";
 import https from "https";
 import { isUndefined } from 'util';
@@ -173,7 +172,7 @@ export const BetokenDataController = (betoken) => {
       return {
         name: x.name,
         symbol: x.symbol,
-        address: web3.utils.toChecksumAddress(x.address),
+        address: betoken.web3.utils.toChecksumAddress(x.address),
         decimals: x.decimals,
         price: BigNumber(0),
         dailyPriceChange: BigNumber(0)
@@ -200,8 +199,7 @@ export const BetokenDataController = (betoken) => {
 
   self.loadUserData = async () => {
     // Get user address
-    await getDefaultAccount();
-    const userAddr = web3.eth.defaultAccount;
+    const userAddr = betoken.web3.eth.defaultAccount;
     if (typeof userAddr !== "undefined") {
       self.userAddress = userAddr;
 
@@ -309,7 +307,7 @@ export const BetokenDataController = (betoken) => {
       if (compoundOrderAddrs.length > 0) {
         const properties = ["stake", "cycleNumber", "collateralAmountInDAI", "compoundTokenAddr", "isSold", "orderType", "buyTime", "getCurrentCollateralRatioInDAI", "getCurrentCollateralInDAI", "getCurrentBorrowInDAI", "getCurrentCashInDAI", "getCurrentProfitInDAI", "getCurrentLiquidityInDAI", "getMarketCollateralFactor"];
         const handleProposal = async (id) => {
-          const order = await CompoundOrder(compoundOrderAddrs[id]);
+          const order = await betoken.CompoundOrder(compoundOrderAddrs[id]);
           let orderData = { "id": id };
           compoundOrders[id] = orderData;
           let promises = [];
