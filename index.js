@@ -1,9 +1,9 @@
-import { Betoken } from './src/betoken-obj';
-import { BetokenDataController } from './src/data-controller';
-import { BetokenAPI } from './src/helpers';
-import Web3 from 'web3';
+const Betoken = require('./src/betoken-obj');
+const BetokenDataController = require('./src/data-controller');
+const BetokenAPI = require('./src/helpers');
+const Web3 = require('web3');
 
-export const getBetokenAPI = async (web3Provider, accountPrivateKey) => {
+module.exports = async (web3Provider, accountPrivateKey) => {
   // initialize Betoken object
   let betoken = new Betoken();
   let web3Instance = new Web3(web3Provider);

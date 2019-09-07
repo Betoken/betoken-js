@@ -1,5 +1,5 @@
 // imports
-import BigNumber from "bignumber.js";
+const BigNumber = require('bignumber.js');
 
 // constants
 export const BETOKEN_PROXY_ADDR = "0xC7CbB403D1722EE3E4ae61f452Dc36d71E8800DE";
@@ -13,7 +13,7 @@ export const PRECISION = 1e18;
 /**
 * Constructs an abstraction of Betoken contracts
 */
-export var Betoken = function (web3) {
+module.exports = function (web3) {
   // Instance vars
   var self;
   self = this;

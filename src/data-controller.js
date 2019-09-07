@@ -1,7 +1,8 @@
 // imports
-import BigNumber from "bignumber.js";
-import https from "https";
-import { isUndefined } from 'util';
+const BigNumber = require('bignumber.js');
+const https = require('https');
+const util = require('util');
+const isUndefined = util.isUndefined;
 
 // constants
 const PRECISION = 1e18;
@@ -12,7 +13,7 @@ const PTOKENS = require('../json_data/fulcrum_tokens.json'); // Fulcrum pTokens
 const UNSAFE_COL_RATIO_MULTIPLIER = 1.1;
 const COL_RATIO_MODIFIER = 4 / 3;
 
-export const BetokenDataController = (betoken) => {
+module.exports = (betoken) => {
   let self = this;
 
   // instance variables

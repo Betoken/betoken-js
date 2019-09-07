@@ -1,7 +1,7 @@
 // imports
-import BigNumber from "bignumber.js";
+const BigNumber = require('bignumber.js');
 
-export const BetokenAPI = (betoken, Data) => {
+module.exports = (betoken, Data) => {
   let self = this;
 
   self.timer = {
