@@ -11,12 +11,12 @@ npm install --save betoken-js
 
 ### 2. Import BetokenJS
 ```
-import { getBetokenAPI } from 'betoken-js';
+const BetokenAPI = require('betoken-js');
 ```
 
 ### 3. Initialize BetokenJS with your web3 provider & Ethereum private key
 ```
 const web3Provider = 'wss://mainnet.infura.io/ws/v3/...';
 const privateKey = '0xdeadbeef';
-const betoken = await getBetokenAPI(web3Provider, privateKey);
+const betoken = await BetokenAPI(web3Provider, privateKey);
 ```
