@@ -34,8 +34,6 @@ module.exports = function (betoken) {
   self.kairoTotalSupply = BigNumber(0);
   self.sharesTotalSupply = BigNumber(0);
   self.totalFunds = BigNumber(0);
-  self.commissionRate = BigNumber(0);
-  self.assetFeeRate = BigNumber(0);
 
   // fund stats
   self.cycleTotalCommission = BigNumber(0);
@@ -45,7 +43,7 @@ module.exports = function (betoken) {
   // cycle timekeeping
   self.cycleNumber = 0;
   self.cyclePhase = 0;
-  self.phaseLengths = [];
+  self.phaseLengths = [3 * 24 * 60 * 60, 27 * 24 * 60 * 60];
   self.startTimeOfCyclePhase = 0;
   self.countdownDay = 0;
   self.countdownHour = 0;
@@ -156,16 +154,6 @@ module.exports = function (betoken) {
   };
 
   // data loaders
-  self.loadMetadata = async () => {
-    return Promise.all([
-      // get params
-      self.phaseLengths = ((await betoken.getPrimitiveVar("getPhaseLengths"))).map(x => +x),
-      self.commissionRate = BigNumber((await betoken.getPrimitiveVar("COMMISSION_RATE"))).div(PRECISION),
-      self.assetFeeRate = BigNumber((await betoken.getPrimitiveVar("ASSET_FEE_RATE"))).div(PRECISION),
-      self.loadTokenMetadata()
-    ]);
-  };
-
   self.loadTokenMetadata = async () => {
     // fetch token data from Kyber API
     let rawData = (await self.httpsGet('https://api.kyber.network/currencies')).data;
@@ -455,7 +443,7 @@ module.exports = function (betoken) {
   };
 
   self.loadAllData = async function () {
-    return self.loadMetadata().then(() => self.loadDynamicData());
+    return self.loadTokenMetadata().then(() => self.loadDynamicData());
   };
 
   self.loadDynamicData = async () => {
