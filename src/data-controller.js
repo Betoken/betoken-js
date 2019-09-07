@@ -13,7 +13,7 @@ const PTOKENS = require('../json_data/fulcrum_tokens.json'); // Fulcrum pTokens
 const UNSAFE_COL_RATIO_MULTIPLIER = 1.1;
 const COL_RATIO_MODIFIER = 4 / 3;
 
-module.exports = (betoken) => {
+module.exports = function (betoken) {
   let self = this;
 
   // instance variables
@@ -138,7 +138,7 @@ module.exports = (betoken) => {
     const timeKeeper = setInterval(() => {
       var days, distance, hours, minutes, now, seconds, target;
       now = Math.floor(new Date().getTime() / 1000);
-      target = self.startTimeOfCyclePhase + self.phaseLengths[cyclePhase];
+      target = self.startTimeOfCyclePhase + self.phaseLengths[self.cyclePhase];
       distance = target - now;
       if (distance > 0) {
         days = Math.floor(distance / (60 * 60 * 24));
@@ -201,188 +201,186 @@ module.exports = (betoken) => {
   self.loadUserData = async () => {
     // Get user address
     const userAddr = betoken.web3.eth.defaultAccount;
-    if (typeof userAddr !== "undefined") {
-      self.userAddress = userAddr;
+    self.userAddress = userAddr;
 
-      // Get shares balance
-      self.sharesBalance = BigNumber((await betoken.getShareBalance(userAddr))).div(PRECISION);
-      if (!sharesTotalSupply.isZero()) {
-        self.investmentBalance = self.sharesBalance.div(self.sharesTotalSupply).times(self.totalFunds);
-      }
+    // Get shares balance
+    self.sharesBalance = BigNumber((await betoken.getShareBalance(userAddr))).div(PRECISION);
+    if (!self.sharesTotalSupply.isZero()) {
+      self.investmentBalance = self.sharesBalance.div(self.sharesTotalSupply).times(self.totalFunds);
+    }
 
-      // Get user's Kairo balance
-      self.kairoBalance = BigNumber((await betoken.getKairoBalance(userAddr))).div(PRECISION);
+    // Get user's Kairo balance
+    self.kairoBalance = BigNumber((await betoken.getKairoBalance(userAddr))).div(PRECISION);
 
-      // Get last commission redemption cycle number
-      self.lastCommissionRedemption = +((await betoken.getMappingOrArrayItem("lastCommissionRedemption", userAddr)));
+    // Get last commission redemption cycle number
+    self.lastCommissionRedemption = +((await betoken.getMappingOrArrayItem("lastCommissionRedemption", userAddr)));
 
-      // Get user's risk profile
-      let risk = BigNumber(await betoken.getRiskTaken(userAddr));
+    // Get user's risk profile
+    let risk = BigNumber(await betoken.getRiskTaken(userAddr));
 
-      var stake = BigNumber(0);
-      var totalKROChange = BigNumber(0);
+    var stake = BigNumber(0);
+    var totalKROChange = BigNumber(0);
 
-      // Get list of user's investments
-      var investments = await betoken.getInvestments(userAddr);
-      if (investments.length > 0) {
-        const handleProposal = async (id) => {
-          let inv = investments[id];
-          let symbol = "";
-          if (self.isFulcrumTokenAddress(inv.tokenAddress)) {
-            symbol = self.assetPTokenAddressToSymbol(inv.tokenAddress);
+    // Get list of user's investments
+    var investments = await betoken.getInvestments(userAddr);
+    if (investments.length > 0) {
+      const handleProposal = async (id) => {
+        let inv = investments[id];
+        let symbol = "";
+        if (self.isFulcrumTokenAddress(inv.tokenAddress)) {
+          symbol = self.assetPTokenAddressToSymbol(inv.tokenAddress);
 
-            inv.type = "fulcrum";
-            inv.id = id;
-            inv.tokenSymbol = symbol;
-            inv.stake = BigNumber(inv.stake).div(PRECISION);
-            inv.buyPrice = BigNumber(inv.buyPrice).div(PRECISION);
-            inv.sellPrice = inv.isSold ? BigNumber(inv.sellPrice).div(PRECISION) : await betoken.getPTokenPrice(inv.tokenAddress, assetSymbolToPrice(symbol));
-            inv.ROI = BigNumber(inv.sellPrice).minus(inv.buyPrice).div(inv.buyPrice).times(100);
-            inv.kroChange = BigNumber(inv.ROI).times(inv.stake).div(100);
-            inv.currValue = BigNumber(inv.kroChange).plus(inv.stake);
-            inv.buyTime = new Date(+inv.buyTime * 1e3);
+          inv.type = "fulcrum";
+          inv.id = id;
+          inv.tokenSymbol = symbol;
+          inv.stake = BigNumber(inv.stake).div(PRECISION);
+          inv.buyPrice = BigNumber(inv.buyPrice).div(PRECISION);
+          inv.sellPrice = inv.isSold ? BigNumber(inv.sellPrice).div(PRECISION) : await betoken.getPTokenPrice(inv.tokenAddress, assetSymbolToPrice(symbol));
+          inv.ROI = BigNumber(inv.sellPrice).minus(inv.buyPrice).div(inv.buyPrice).times(100);
+          inv.kroChange = BigNumber(inv.ROI).times(inv.stake).div(100);
+          inv.currValue = BigNumber(inv.kroChange).plus(inv.stake);
+          inv.buyTime = new Date(+inv.buyTime * 1e3);
 
-            let info = self.assetPTokenAddressToInfo(inv.tokenAddress);
-            inv.leverage = info.leverage;
-            inv.orderType = info.type;
+          let info = self.assetPTokenAddressToInfo(inv.tokenAddress);
+          inv.leverage = info.leverage;
+          inv.orderType = info.type;
 
-            inv.liquidationPrice = await betoken.getPTokenLiquidationPrice(inv.tokenAddress, self.assetSymbolToPrice(symbol));
-            inv.safety = inv.liquidationPrice.minus(inv.sellPrice).div(inv.sellPrice).abs().gt(UNSAFE_COL_RATIO_MULTIPLIER - 1);
+          inv.liquidationPrice = await betoken.getPTokenLiquidationPrice(inv.tokenAddress, self.assetSymbolToPrice(symbol));
+          inv.safety = inv.liquidationPrice.minus(inv.sellPrice).div(inv.sellPrice).abs().gt(UNSAFE_COL_RATIO_MULTIPLIER - 1);
 
 
-            if (!inv.isSold && +inv.cycleNumber === cycleNumber) {
-              // add stake
-              var currentStakeValue = inv.sellPrice
-                .minus(inv.buyPrice).div(inv.buyPrice).times(inv.stake).plus(inv.stake);
-              stake = stake.plus(currentStakeValue);
-
-              // add risk
-              let now = Date.now();
-              let investmentAgeInSeconds = now / 1e3 - inv.buyTime.getTime() / 1e3;
-              risk = risk.plus(inv.stake.times(PRECISION).times(investmentAgeInSeconds).integerValue());
-            }
-          } else {
-            symbol = self.assetAddressToSymbol(inv.tokenAddress);
-
-            inv.type = "basic";
-            inv.id = id;
-            inv.tokenSymbol = symbol;
-            inv.stake = BigNumber(inv.stake).div(PRECISION);
-            inv.buyPrice = BigNumber(inv.buyPrice).div(PRECISION);
-            inv.sellPrice = inv.isSold ? BigNumber(inv.sellPrice).div(PRECISION) : self.assetSymbolToPrice(symbol);
-            inv.ROI = BigNumber(inv.sellPrice).minus(inv.buyPrice).div(inv.buyPrice).times(100);
-            inv.kroChange = BigNumber(inv.ROI).times(inv.stake).div(100);
-            inv.currValue = BigNumber(inv.kroChange).plus(inv.stake);
-            inv.buyTime = new Date(+inv.buyTime * 1e3);
-
-            if (!inv.isSold && +inv.cycleNumber === cycleNumber) {
-              // add stake
-              var currentStakeValue = inv.sellPrice
-                .minus(inv.buyPrice).div(inv.buyPrice).times(inv.stake).plus(inv.stake);
-              stake = stake.plus(currentStakeValue);
-
-              // add risk
-              let now = Date.now();
-              let investmentAgeInSeconds = now / 1e3 - inv.buyTime.getTime() / 1e3;
-              risk = risk.plus(inv.stake.times(PRECISION).times(investmentAgeInSeconds).integerValue());
-            }
-          }
-          investments[id] = inv;
-        };
-        const handleAllProposals = () => {
-          var results = [];
-          for (var i = 0; i < investments.length; i++) {
-            results.push(handleProposal(i));
-          }
-          return results;
-        };
-        await Promise.all(handleAllProposals());
-        investments = investments.filter((x) => +x.cycleNumber == self.cycleNumber);
-
-        totalKROChange = totalKROChange.plus(investments.map((x) => BigNumber(x.kroChange)).reduce((x, y) => x.plus(y), BigNumber(0)));
-      }
-
-      // get list of Compound orders
-      var compoundOrderAddrs = await betoken.getCompoundOrders(userAddr);
-      var compoundOrders = new Array(compoundOrderAddrs.length);
-      if (compoundOrderAddrs.length > 0) {
-        const properties = ["stake", "cycleNumber", "collateralAmountInDAI", "compoundTokenAddr", "isSold", "orderType", "buyTime", "getCurrentCollateralRatioInDAI", "getCurrentCollateralInDAI", "getCurrentBorrowInDAI", "getCurrentCashInDAI", "getCurrentProfitInDAI", "getCurrentLiquidityInDAI", "getMarketCollateralFactor"];
-        const handleProposal = async (id) => {
-          const order = await betoken.CompoundOrder(compoundOrderAddrs[id]);
-          let orderData = { "id": id };
-          compoundOrders[id] = orderData;
-          let promises = [];
-          for (let prop of properties) {
-            promises.push(order.methods[prop]().call().then((x) => orderData[prop] = x));
-          }
-          return await Promise.all(promises);
-        };
-        const handleAllProposals = () => {
-          var results = [];
-          for (var i = 0; i < compoundOrderAddrs.length; i++) {
-            results.push(handleProposal(i));
-          }
-          return results;
-        };
-        await Promise.all(handleAllProposals());
-
-        // reformat compound order objects
-        compoundOrders = compoundOrders.filter((x) => +x.cycleNumber == self.cycleNumber); // only care about investments in current cycle
-        for (let o of compoundOrders) {
-          o.stake = BigNumber(o.stake).div(PRECISION);
-          o.cycleNumber = +o.cycleNumber;
-          o.collateralAmountInDAI = BigNumber(o.collateralAmountInDAI).div(PRECISION);
-          o.buyTime = new Date(+o.buyTime * 1e3);
-
-          o.collateralRatio = BigNumber(o.getCurrentCollateralRatioInDAI).div(PRECISION);
-          o.currProfit = BigNumber(o.getCurrentProfitInDAI._amount).times(o.getCurrentProfitInDAI._isNegative ? -1 : 1).div(PRECISION);
-          o.currCollateral = BigNumber(o.getCurrentCollateralInDAI).div(PRECISION);
-          o.currBorrow = BigNumber(o.getCurrentBorrowInDAI).div(PRECISION);
-          o.currCash = BigNumber(o.getCurrentCashInDAI).div(PRECISION);
-          o.minCollateralRatio = BigNumber(PRECISION).div(o.getMarketCollateralFactor);
-          o.currLiquidity = BigNumber(o.getCurrentLiquidityInDAI._amount).times(o.getCurrentLiquidityInDAI._isNegative ? -1 : 1).div(PRECISION);
-
-          o.ROI = o.currProfit.div(o.collateralAmountInDAI).times(100);
-          o.kroChange = o.ROI.times(o.stake).div(100);
-          o.tokenSymbol = assetCTokenAddressToSymbol(o.compoundTokenAddr);
-          o.currValue = o.stake.plus(o.kroChange);
-          o.safety = o.collateralRatio.gt(o.minCollateralRatio.times(UNSAFE_COL_RATIO_MULTIPLIER));
-          o.leverage = o.orderType ? o.minCollateralRatio.times(COL_RATIO_MODIFIER).pow(-1).dp(4).toNumber() : BigNumber(1).plus(o.minCollateralRatio.times(COL_RATIO_MODIFIER).pow(-1)).dp(4).toNumber();
-          o.type = "compound";
-
-          if (!o.isSold) {
+          if (!inv.isSold && +inv.cycleNumber === cycleNumber) {
             // add stake
-            var currentStakeValue = o.stake.times(o.ROI.div(100).plus(1));
+            var currentStakeValue = inv.sellPrice
+              .minus(inv.buyPrice).div(inv.buyPrice).times(inv.stake).plus(inv.stake);
             stake = stake.plus(currentStakeValue);
 
             // add risk
             let now = Date.now();
-            let investmentAgeInSeconds = now / 1e3 - o.buyTime.getTime() / 1e3;
-            risk = risk.plus(o.stake.times(PRECISION).times(investmentAgeInSeconds).integerValue());
+            let investmentAgeInSeconds = now / 1e3 - inv.buyTime.getTime() / 1e3;
+            risk = risk.plus(inv.stake.times(PRECISION).times(investmentAgeInSeconds).integerValue());
           }
+        } else {
+          symbol = self.assetAddressToSymbol(inv.tokenAddress);
 
-          delete o.getCurrentCollateralRatioInDAI;
-          delete o.getCurrentProfitInDAI;
-          delete o.getCurrentCollateralInDAI;
-          delete o.getCurrentBorrowInDAI;
-          delete o.getCurrentCashInDAI;
-          delete o.getMarketCollateralFactor;
+          inv.type = "basic";
+          inv.id = id;
+          inv.tokenSymbol = symbol;
+          inv.stake = BigNumber(inv.stake).div(PRECISION);
+          inv.buyPrice = BigNumber(inv.buyPrice).div(PRECISION);
+          inv.sellPrice = inv.isSold ? BigNumber(inv.sellPrice).div(PRECISION) : self.assetSymbolToPrice(symbol);
+          inv.ROI = BigNumber(inv.sellPrice).minus(inv.buyPrice).div(inv.buyPrice).times(100);
+          inv.kroChange = BigNumber(inv.ROI).times(inv.stake).div(100);
+          inv.currValue = BigNumber(inv.kroChange).plus(inv.stake);
+          inv.buyTime = new Date(+inv.buyTime * 1e3);
+
+          if (!inv.isSold && +inv.cycleNumber === cycleNumber) {
+            // add stake
+            var currentStakeValue = inv.sellPrice
+              .minus(inv.buyPrice).div(inv.buyPrice).times(inv.stake).plus(inv.stake);
+            stake = stake.plus(currentStakeValue);
+
+            // add risk
+            let now = Date.now();
+            let investmentAgeInSeconds = now / 1e3 - inv.buyTime.getTime() / 1e3;
+            risk = risk.plus(inv.stake.times(PRECISION).times(investmentAgeInSeconds).integerValue());
+          }
+        }
+        investments[id] = inv;
+      };
+      const handleAllProposals = () => {
+        var results = [];
+        for (var i = 0; i < investments.length; i++) {
+          results.push(handleProposal(i));
+        }
+        return results;
+      };
+      await Promise.all(handleAllProposals());
+      investments = investments.filter((x) => +x.cycleNumber == self.cycleNumber);
+
+      totalKROChange = totalKROChange.plus(investments.map((x) => BigNumber(x.kroChange)).reduce((x, y) => x.plus(y), BigNumber(0)));
+    }
+
+    // get list of Compound orders
+    var compoundOrderAddrs = await betoken.getCompoundOrders(userAddr);
+    var compoundOrders = new Array(compoundOrderAddrs.length);
+    if (compoundOrderAddrs.length > 0) {
+      const properties = ["stake", "cycleNumber", "collateralAmountInDAI", "compoundTokenAddr", "isSold", "orderType", "buyTime", "getCurrentCollateralRatioInDAI", "getCurrentCollateralInDAI", "getCurrentBorrowInDAI", "getCurrentCashInDAI", "getCurrentProfitInDAI", "getCurrentLiquidityInDAI", "getMarketCollateralFactor"];
+      const handleProposal = async (id) => {
+        const order = await betoken.CompoundOrder(compoundOrderAddrs[id]);
+        let orderData = { "id": id };
+        compoundOrders[id] = orderData;
+        let promises = [];
+        for (let prop of properties) {
+          promises.push(order.methods[prop]().call().then((x) => orderData[prop] = x));
+        }
+        return await Promise.all(promises);
+      };
+      const handleAllProposals = () => {
+        var results = [];
+        for (var i = 0; i < compoundOrderAddrs.length; i++) {
+          results.push(handleProposal(i));
+        }
+        return results;
+      };
+      await Promise.all(handleAllProposals());
+
+      // reformat compound order objects
+      compoundOrders = compoundOrders.filter((x) => +x.cycleNumber == self.cycleNumber); // only care about investments in current cycle
+      for (let o of compoundOrders) {
+        o.stake = BigNumber(o.stake).div(PRECISION);
+        o.cycleNumber = +o.cycleNumber;
+        o.collateralAmountInDAI = BigNumber(o.collateralAmountInDAI).div(PRECISION);
+        o.buyTime = new Date(+o.buyTime * 1e3);
+
+        o.collateralRatio = BigNumber(o.getCurrentCollateralRatioInDAI).div(PRECISION);
+        o.currProfit = BigNumber(o.getCurrentProfitInDAI._amount).times(o.getCurrentProfitInDAI._isNegative ? -1 : 1).div(PRECISION);
+        o.currCollateral = BigNumber(o.getCurrentCollateralInDAI).div(PRECISION);
+        o.currBorrow = BigNumber(o.getCurrentBorrowInDAI).div(PRECISION);
+        o.currCash = BigNumber(o.getCurrentCashInDAI).div(PRECISION);
+        o.minCollateralRatio = BigNumber(PRECISION).div(o.getMarketCollateralFactor);
+        o.currLiquidity = BigNumber(o.getCurrentLiquidityInDAI._amount).times(o.getCurrentLiquidityInDAI._isNegative ? -1 : 1).div(PRECISION);
+
+        o.ROI = o.currProfit.div(o.collateralAmountInDAI).times(100);
+        o.kroChange = o.ROI.times(o.stake).div(100);
+        o.tokenSymbol = assetCTokenAddressToSymbol(o.compoundTokenAddr);
+        o.currValue = o.stake.plus(o.kroChange);
+        o.safety = o.collateralRatio.gt(o.minCollateralRatio.times(UNSAFE_COL_RATIO_MULTIPLIER));
+        o.leverage = o.orderType ? o.minCollateralRatio.times(COL_RATIO_MODIFIER).pow(-1).dp(4).toNumber() : BigNumber(1).plus(o.minCollateralRatio.times(COL_RATIO_MODIFIER).pow(-1)).dp(4).toNumber();
+        o.type = "compound";
+
+        if (!o.isSold) {
+          // add stake
+          var currentStakeValue = o.stake.times(o.ROI.div(100).plus(1));
+          stake = stake.plus(currentStakeValue);
+
+          // add risk
+          let now = Date.now();
+          let investmentAgeInSeconds = now / 1e3 - o.buyTime.getTime() / 1e3;
+          risk = risk.plus(o.stake.times(PRECISION).times(investmentAgeInSeconds).integerValue());
         }
 
-        totalKROChange = totalKROChange.plus(compoundOrders.map((x) => BigNumber(x.kroChange)).reduce((x, y) => x.plus(y), BigNumber(0)));
+        delete o.getCurrentCollateralRatioInDAI;
+        delete o.getCurrentProfitInDAI;
+        delete o.getCurrentCollateralInDAI;
+        delete o.getCurrentBorrowInDAI;
+        delete o.getCurrentCashInDAI;
+        delete o.getMarketCollateralFactor;
       }
 
-      self.investmentList = investments.concat(compoundOrders);
-      self.portfolioValue = stake.plus(kairoBalance);
-      var cycleStartKRO = BigNumber(await betoken.getBaseStake(userAddr)).div(PRECISION);
-      self.managerROI = cycleStartKRO.gt(0) ? totalKROChange.div(cycleStartKRO).times(100) : BigNumber(0);
-
-      self.riskTakenPercentage = BigNumber(risk).div(await betoken.getRiskThreshold(userAddr));
-      if (self.riskTakenPercentage.isNaN()) {
-        self.riskTakenPercentage = BigNumber(0);
-      }
-      self.riskTakenPercentage = BigNumber.min(self.riskTakenPercentage, 1); // Meaningless after exceeding 1
+      totalKROChange = totalKROChange.plus(compoundOrders.map((x) => BigNumber(x.kroChange)).reduce((x, y) => x.plus(y), BigNumber(0)));
     }
+
+    self.investmentList = investments.concat(compoundOrders);
+    self.portfolioValue = stake.plus(self.kairoBalance);
+    var cycleStartKRO = BigNumber(await betoken.getBaseStake(userAddr)).div(PRECISION);
+    self.managerROI = cycleStartKRO.gt(0) ? totalKROChange.div(cycleStartKRO).times(100) : BigNumber(0);
+
+    self.riskTakenPercentage = BigNumber(risk).div(await betoken.getRiskThreshold(userAddr));
+    if (self.riskTakenPercentage.isNaN()) {
+      self.riskTakenPercentage = BigNumber(0);
+    }
+    self.riskTakenPercentage = BigNumber.min(self.riskTakenPercentage, 1); // Meaningless after exceeding 1
   };
 
   self.loadTokenPrices = async () => {
@@ -470,4 +468,6 @@ module.exports = (betoken) => {
       ]
     ));
   };
+
+  return this;
 }
