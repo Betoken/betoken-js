@@ -1,7 +1,7 @@
 {
   "name": "betoken-js",
-  "version": "0.0.5",
-  "description": "JavaScript API for interacting with Betoken Fund",
+  "version": "0.0.6",
+  "description": "JavaScript API for interacting with the Betoken fund",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

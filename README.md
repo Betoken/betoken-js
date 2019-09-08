@@ -1,6 +1,6 @@
 # BetokenJS
 
-Javascript API for managing the Betoken fund.
+Javascript API for interacting with the Betoken fund.
 
 ## Getting Started
 
@@ -20,3 +20,7 @@ const web3Provider = 'wss://mainnet.infura.io/ws/v3/...';
 const privateKey = '0xdeadbeef';
 const betoken = await BetokenAPI(web3Provider, privateKey);
 ```
+
+## Documentation
+
+See [BetokenJS Docs](https://betoken.fund/betoken-js-docs)
