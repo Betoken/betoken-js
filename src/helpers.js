@@ -37,18 +37,10 @@ module.exports = function (betoken, Data) {
       }
     },
     totalFunds: () => Data.totalFunds,
-    avgRoi: () => Data.avgROI,
-    cycleRoi: () => {
-      switch (Data.cyclePhase) {
-        case 0:
-          return BigNumber(0);
-        case 1:
-          return Data.currROI;
-      }
-    },
     sharesPrice: () => Data.sharesPrice,
     kairoPrice: () => Data.kairoPrice,
-    kairoTotalSupply: () => Data.kairoTotalSupply
+    kairoTotalSupply: () => Data.kairoTotalSupply,
+    sharesTotalSupply: () => Data.sharesTotalSupply
   };
 
   self.tokens = {
