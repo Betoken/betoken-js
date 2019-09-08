@@ -47,7 +47,11 @@ module.exports = function (betoken, Data) {
     tokenData: () => Data.TOKENDATA,
     assetSymbolToInfo: (symbol) => Data.assetSymbolToInfo(symbol),
     assetSymbolToPTokens: (symbol) => Data.assetSymbolToPTokens(symbol),
-    getPtokenPrice: (addr, underlyingPrice) => betoken.getPTokenPrice(addr, underlyingPrice), // returns promise
+    assetSymbolToCTokenAddress: (symbol) => Data.assetSymbolToCTokenAddress(symbol),
+    assetAddressToSymbol: (addr) => Data.assetAddressToSymbol(addr),
+    assetPTokenAddressToInfo: (addr) => Data.assetPTokenAddressToInfo(addr),
+    assetCTokenAddressToSymbol: (addr) => Data.assetCTokenAddressToSymbol(addr),
+    getPTokenPrice: (addr, underlyingPrice) => betoken.getPTokenPrice(addr, underlyingPrice), // returns promise
     notStablecoin: (symbol) => Data.notStablecoin(symbol),
     isCompoundToken: (symbol) => Data.isCompoundToken(symbol),
     isFulcrumToken: (symbol) => Data.isFulcrumToken(symbol),
@@ -60,9 +64,6 @@ module.exports = function (betoken, Data) {
     },
     prices: () => {
       return Data.loadTokenPrices();
-    },
-    stats: () => {
-      return Data.loadTokenPrices().then(Data.loadUserData).then(Data.loadStats);
     },
     all: () => {
       return Data.loadDynamicData();
