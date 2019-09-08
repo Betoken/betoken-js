@@ -27,6 +27,7 @@ module.exports = function (betoken) {
   self.managerROI = BigNumber(0);
   self.portfolioValue = BigNumber(0);
   self.riskTakenPercentage = BigNumber(0);
+  self.commissionBalance = BigNumber(0);
 
   // fund metadata
   self.kairoTotalSupply = BigNumber(0);
@@ -181,6 +182,10 @@ module.exports = function (betoken) {
 
     // Get user's risk profile
     let risk = BigNumber(await betoken.getRiskTaken(userAddr));
+
+    // Get user's commission balance
+    let commissionObj = await betoken.getCommissionBalance(userAddr);
+    self.commissionBalance = BigNumber(commissionObj._commission).div(PRECISION);
 
     var stake = BigNumber(0);
     var totalKROChange = BigNumber(0);

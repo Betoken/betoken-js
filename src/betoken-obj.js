@@ -274,6 +274,10 @@ module.exports = function (web3) {
     return baseStake.times(threeDayInSeconds);
   }
 
+  self.getCommissionBalance = (_address) => {
+    return self.contracts.BetokenFund.methods.commissionBalanceOf(_address);
+  }
+
   /**
   * Gets the Share balance of an address
   * @param  {String} _address the address whose balance we're getting

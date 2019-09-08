@@ -26,6 +26,7 @@ module.exports = function (betoken, Data) {
     investmentList: () => Data.cyclePhase == 1 ? Data.investmentList : [],
     portfolioValue: () => Data.portfolioValue,
     riskTakenPercentage: () => Data.riskTakenPercentage,
+    commissionBalance: () => Data.commissionBalance
   };
 
   self.stats = {
@@ -91,9 +92,6 @@ module.exports = function (betoken, Data) {
     withdrawToken: (amt, tokenSymbol, onPending, onConfirm, onError) => {
       let tokenAddr = Data.assetSymbolToInfo(tokenSymbol).address;
       return betoken.withdrawToken(tokenAddr, amt, onPending, onConfirm, onError);
-    },
-    nextPhase: () => {
-      return betoken.nextPhase();
     }
   };
 
@@ -106,8 +104,8 @@ module.exports = function (betoken, Data) {
     newInvestmentWithAddress: function (tokenAddress, stakeInKRO, minPrice, maxPrice, onPending, onConfirm, onError) {
       return betoken.createInvestment(tokenAddress, stakeInKRO, minPrice, maxPrice, onPending, onConfirm, onError);
     },
-    sellInvestment: function (id, percentage, minPrice, maxPrice, onPending, onConfirm, onError) {
-      return betoken.sellAsset(id, percentage, minPrice, maxPrice, onPending, onConfirm, onError);
+    sellInvestment: function (id, sellProportion, minPrice, maxPrice, onPending, onConfirm, onError) {
+      return betoken.sellAsset(id, sellProportion, minPrice, maxPrice, onPending, onConfirm, onError);
     },
     newCompoundOrder: function (orderType, tokenSymbol, stakeInKRO, minPrice, maxPrice, onPending, onConfirm, onError) {
       var tokenAddress = Data.assetSymbolToCTokenAddress(tokenSymbol);
@@ -125,8 +123,8 @@ module.exports = function (betoken, Data) {
     redeemCommissionForCycle: function (inShares, cycle, onPending, onConfirm, onError) {
       return betoken.redeemCommissionForCycle(inShares, cycle, onPending, onConfirm, onError);
     },
-    nextPhase: () => {
-      return betoken.nextPhase();
+    nextPhase: (onPending, onConfirm, onError) => {
+      return betoken.nextPhase(onPending, onConfirm, onError);
     },
     registerWithDAI: (amountInDAI, onPending, onConfirm, onError) => {
       return betoken.registerWithDAI(amountInDAI, onPending, onConfirm, onError);
@@ -134,8 +132,8 @@ module.exports = function (betoken, Data) {
     registerWithETH: (amountInETH, onPending, onConfirm, onError) => {
       return betoken.registerWithETH(amountInETH, onPending, onConfirm, onError);
     },
-    registerWithToken: (amountInToken, symbol, onPending, onConfirm, onError) => {
-      let tokenAddr = Data.assetSymbolToAddress(symbol);
+    registerWithToken: (amountInToken, tokenSymbol, onPending, onConfirm, onError) => {
+      let tokenAddr = Data.assetSymbolToAddress(tokenSymbol);
       return betoken.registerWithToken(tokenAddr, amountInToken, onPending, onConfirm, onError);
     }
   };
