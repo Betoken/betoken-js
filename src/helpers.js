@@ -66,7 +66,7 @@ module.exports = function (betoken, Data) {
       return Data.loadTokenPrices();
     },
     all: () => {
-      return Data.loadDynamicData();
+      return Data.loadAllData();
     }
   };
 
