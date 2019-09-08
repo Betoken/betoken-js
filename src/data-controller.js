@@ -25,8 +25,6 @@ module.exports = function (betoken) {
   self.investmentList = [];
   self.lastCommissionRedemption = 0;
   self.managerROI = BigNumber(0);
-  self.commissionHistory = [];
-  self.depositWithdrawHistory = [];
   self.portfolioValue = BigNumber(0);
   self.riskTakenPercentage = BigNumber(0);
 
@@ -45,11 +43,7 @@ module.exports = function (betoken) {
   self.cyclePhase = 0;
   self.phaseLengths = [3 * 24 * 60 * 60, 27 * 24 * 60 * 60];
   self.startTimeOfCyclePhase = 0;
-  self.countdownDay = 0;
-  self.countdownHour = 0;
-  self.countdownMin = 0;
-  self.countdownSec = 0;
-
+  
   // token data
   self.TOKEN_DATA = [];
 
@@ -132,26 +126,12 @@ module.exports = function (betoken) {
     return data;
   };
 
-  self.clock = () => {
-    const timeKeeper = setInterval(() => {
-      var days, distance, hours, minutes, now, seconds, target;
-      now = Math.floor(new Date().getTime() / 1000);
-      target = self.startTimeOfCyclePhase + self.phaseLengths[self.cyclePhase];
-      distance = target - now;
-      if (distance > 0) {
-        days = Math.floor(distance / (60 * 60 * 24));
-        hours = Math.floor((distance % (60 * 60 * 24)) / (60 * 60));
-        minutes = Math.floor((distance % (60 * 60)) / 60);
-        seconds = Math.floor(distance % 60);
-        self.countdownDay = days;
-        self.countdownHour = hours;
-        self.countdownMin = minutes;
-        self.countdownSec = seconds;
-      } else {
-        clearInterval(timeKeeper);
-      }
-    }, 1000);
-  };
+  self.timeTillPhaseEnd = () => {
+    const now = Math.floor(new Date().getTime() / 1000);
+    const target = self.startTimeOfCyclePhase + self.phaseLengths[self.cyclePhase];
+    const distance = target - now;
+    return distance;
+  }
 
   // data loaders
   self.loadTokenMetadata = async () => {
@@ -179,11 +159,7 @@ module.exports = function (betoken) {
       self.sharesTotalSupply = BigNumber((await betoken.getShareTotalSupply())).div(PRECISION),
       self.totalFunds = BigNumber((await betoken.getPrimitiveVar("totalFundsInDAI"))).div(PRECISION),
       self.kairoTotalSupply = BigNumber((await betoken.getKairoTotalSupply())).div(PRECISION)
-    ]).then(() => {
-      if (self.countdownDay == 0 && self.countdownHour == 0 && self.countdownMin == 0 && self.countdownSec == 0) {
-        self.clock();
-      }
-    });
+    ]);
   };
 
   self.loadUserData = async () => {

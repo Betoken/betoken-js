@@ -5,10 +5,7 @@ module.exports = function (betoken, Data) {
   let self = this;
 
   self.timer = {
-    day: () => Data.countdownDay,
-    hour: () => Data.countdownHour,
-    minute: () => Data.countdownMin,
-    second: () => Data.countdownSec,
+    timeTillPhaseEnd: () => Data.timeTillPhaseEnd(),
     phase: () => Data.cyclePhase,
     phaseStartTime: () => Data.startTimeOfCyclePhase,
     phaseLengths: () => Data.phaseLengths,
@@ -18,21 +15,16 @@ module.exports = function (betoken, Data) {
   self.user = {
     address: () => Data.userAddress,
     sharesBalance: () => Data.sharesBalance,
-    investmentBalance: () => Data.investmentBalance,
+    sharesBalanceInDai: () => Data.investmentBalance,
     kairoBalance: () => Data.kairoBalance,
-    tokenBalance: async (betoken, tokenSymbol) => {
+    tokenBalance: async (tokenSymbol) => {
       let balance = await betoken.getTokenBalance(Data.assetSymbolToAddress(tokenSymbol), Data.userAddress);
       let decimals = Data.TOKENDATA.find((x) => x.symbol === tokenSymbol).decimals;
       return BigNumber(balance).div(Math.pow(10, decimals));
     },
     monthlyRoi: () => Data.managerROI,
-    commissionHistory: () => Data.commissionHistory,
-    depositWithdrawHistory: () => Data.depositWithdrawHistory,
     investmentList: () => Data.cyclePhase == 1 ? Data.investmentList : [],
     portfolioValue: () => Data.portfolioValue,
-    portfolioValueInDai: () => {
-      return Data.portfolioValue.times(Data.totalFunds).div(Data.kairoTotalSupply);
-    },
     riskTakenPercentage: () => Data.riskTakenPercentage,
   };
 
