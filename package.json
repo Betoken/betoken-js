@@ -1,6 +1,6 @@
 {
   "name": "betoken-js",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "JavaScript API for interacting with the Betoken fund",
   "main": "index.js",
   "scripts": {
