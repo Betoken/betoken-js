@@ -53,6 +53,10 @@ module.exports = function (betoken) {
     return self.TOKEN_DATA.find((x) => x.symbol === _symbol).price;
   };
 
+  self.assetSymbolToAddress = function (_symbol) {
+    return self.TOKEN_DATA.find((x) => x.symbol === _symbol).address;
+  };
+
   self.assetAddressToSymbol = function (_addr) {
     return self.TOKEN_DATA.find((x) => x.address === _addr).symbol;
   };
@@ -135,9 +139,9 @@ module.exports = function (betoken) {
   }
 
   // data loaders
-  self.loadTokenMetadata = async () => {
+  self.loadTokenMetadata = () => {
     // fetch token data from Kyber API
-    let rawData = (await self.httpsGet('https://api.kyber.network/currencies')).data;
+    let rawData = require('./json_data/kyber_tokens.json').data;
     let tokenData = rawData.map((x) => {
       return {
         name: x.name,
